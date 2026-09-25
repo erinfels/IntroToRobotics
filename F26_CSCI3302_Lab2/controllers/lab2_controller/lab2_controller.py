@@ -28,9 +28,9 @@ state = "speed_measurement"
 # ePuck Constants
 EPUCK_AXLE_DIAMETER = 0.053  # ePuck's wheels are 53mm apart.
 # TODO: set the ePuck wheel speed in m/s after measuring the speed (Part 1)
-EPUCK_MAX_WHEEL_SPEED = 0.13643
+EPUCK_MAX_WHEEL_SPEED = 0.125
 MAX_SPEED = 6.28
-MEASUREMENT_DISTANCE = 0.567
+MEASUREMENT_DISTANCE = 0.1
 
 # get the time step of the current world.
 SIM_TIMESTEP = int(robot.getBasicTimeStep())
@@ -81,7 +81,8 @@ def update_odometry(left_velocity, right_velocity):
 
     pose_x += distance * math.cos(theta_mid)
     pose_y += distance * math.sin(theta_mid)
-    pose_theta = (pose_theta + dtheta) % (2 * math.pi) 
+    pose_theta = math.atan2(math.sin(pose_theta + dtheta), math.cos(pose_theta + dtheta))
+
 # Main Control Loop:
 while robot.step(SIM_TIMESTEP) != -1:
 
@@ -216,7 +217,7 @@ while robot.step(SIM_TIMESTEP) != -1:
                 )
             if start_line_confirmed:
                 if lap_started:
-                    print("Current pose: [%5f, %5f, %5f]" % (pose_x, pose_y, pose_theta))
+                    print("Pose before reset: [%5f, %5f, %5f]" % (pose_x, pose_y, pose_theta))
                    # while (True):
                         #time.sleep(1)
 
