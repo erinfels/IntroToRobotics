@@ -52,27 +52,30 @@ compass.enable(SIM_TIMESTEP)
 waypoints = [(-0.314705, -0.084838), (-0.314705, -0.414838),(0.325295, -0.414838),(0.325295, -0.254838),(0.045295, -0.014838),(0.345295, 0.265162),(0.135295, 0.415162),(-0.304705, 0.415162),(-0.304705, 0.295162),(-0.184705, 0.285162),(-0.184705, -0.004838)]
 
 # Index indicating which waypoint the robot is reaching next
-index = 0
+index = 1
 
 # Get ping pong ball marker that marks the next waypoint the robot is reaching
 marker = robot.getFromDef("marker").getField("translation")
-
 
 #Phi_l = X_R/r - dtheta/2r
 #Phi_r = X_R/r + dtheta/2r
 
 #Determine (Position Error) Calculate the Euclidean distance 𝜌 between your current location and the goal position.
+PosErr = 0
 
 #Determine (Bearing Error) Calculate the angle 𝛼 between the orientation of the robot and the direction of the goal position. (positive to the left)
+BerErr = 0
 
 #Determine (Heading Error) Calculate the angle 𝜂 between the orientation of the robot and the goal orientation.
+HedErr = 0
 
+#theres a decent chance these shouldn't be functions lol
 
-
-def turn_drive_turn_control():
+def turn_drive_turn_control(): 
     #Using <left/right>motor.setVelocity(), create a controller that rotates in place until the robot is facing the
     #goal position (reduce bearing error), drives forward to the goal position (reduce position error), then
     #rotates in place to orient to the proper heading (reduce heading error).
+    return none
 
 def proportional_controller():
     #Calculate the necessary change in robot position 𝑋̇𝑅 that is
@@ -82,7 +85,7 @@ def proportional_controller():
     #Create a proportional feedback controller that uses the inverse kinematics equations with your error
     #signals to compute the wheel rotations needed to make the position and rotation changes for driving to
     #a given goal.
-    
+    return none
     
 
 # Main Control Loop:
@@ -108,6 +111,8 @@ while robot.step(SIM_TIMESTEP) != -1:
     
     # TODO: controller
     
+    print(f"{PosErr} {index}")
+    print(f"{BerErr} {HedErr}")
     print("Current pose: [%5f, %5f, %5f]" % (pose_x, pose_y, pose_theta))
     leftMotor.setVelocity(vL)
     rightMotor.setVelocity(vR)
