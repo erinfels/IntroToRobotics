@@ -66,6 +66,7 @@ PosErr = 0
 #Determine (Bearing Error) Calculate the angle 𝛼 between the orientation of the robot and the direction of the goal position. (positive to the left)
 BerErr = 0
 
+
 #Determine (Heading Error) Calculate the angle 𝜂 between the orientation of the robot and the goal orientation.
 HedErr = 0
 
@@ -108,6 +109,10 @@ while robot.step(SIM_TIMESTEP) != -1:
     pose_x = gps.getValues()[0]
     pose_y = gps.getValues()[1]
     pose_theta = np.arctan2(compass.getValues()[0], compass.getValues()[1])
+    
+    
+    PosErr = np.sqrt((pose_x-waypoints[index][0])**2 + (pose_y-waypoints[index][1])**2)
+    BerErr = pose_theta
     
     # TODO: controller
     
