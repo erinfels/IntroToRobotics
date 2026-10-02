@@ -49,12 +49,41 @@ compass.enable(SIM_TIMESTEP)
 # TODO: Find waypoints to navigate around the arena while avoiding obstacles
 # Use shift+drag on the ping pong marker in the simulator to find good waypoints.
 # Add them as (x, y) tuples. You need at least one waypoint before running!
-waypoints = [(-0.184705, -0.004838),(-0.184705, 0.285162),(-0.304705, 0.295162),(-0.304705, 0.415162),(0.135295, 0.415162),(0.345295, 0.265162),(0.045295, -0.014838),(0.325295, -0.254838),(0.325295, -0.414838), (-0.314705, -0.414838), (-0.314705, -0.084838)] # e.g. [(-0.1, -0.4), (0.3, -0.4), ...]
+waypoints = [(-0.314705, -0.084838), (-0.314705, -0.414838),(0.325295, -0.414838),(0.325295, -0.254838),(0.045295, -0.014838),(0.345295, 0.265162),(0.135295, 0.415162),(-0.304705, 0.415162),(-0.304705, 0.295162),(-0.184705, 0.285162),(-0.184705, -0.004838)]
+
 # Index indicating which waypoint the robot is reaching next
 index = 0
 
 # Get ping pong ball marker that marks the next waypoint the robot is reaching
 marker = robot.getFromDef("marker").getField("translation")
+
+
+#Phi_l = X_R/r - dtheta/2r
+#Phi_r = X_R/r + dtheta/2r
+
+#Determine (Position Error) Calculate the Euclidean distance 𝜌 between your current location and the goal position.
+
+#Determine (Bearing Error) Calculate the angle 𝛼 between the orientation of the robot and the direction of the goal position. (positive to the left)
+
+#Determine (Heading Error) Calculate the angle 𝜂 between the orientation of the robot and the goal orientation.
+
+
+
+def turn_drive_turn_control():
+    #Using <left/right>motor.setVelocity(), create a controller that rotates in place until the robot is facing the
+    #goal position (reduce bearing error), drives forward to the goal position (reduce position error), then
+    #rotates in place to orient to the proper heading (reduce heading error).
+
+def proportional_controller():
+    #Calculate the necessary change in robot position 𝑋̇𝑅 that is
+    #proportional to 𝜌. Calculate the necessary change in robot rotation 𝜃̇𝑅 that is proportional to 𝛼 and 𝜂.
+    #Set values for left and right wheel motors accordingly.
+    
+    #Create a proportional feedback controller that uses the inverse kinematics equations with your error
+    #signals to compute the wheel rotations needed to make the position and rotation changes for driving to
+    #a given goal.
+    
+    
 
 # Main Control Loop:
 while robot.step(SIM_TIMESTEP) != -1:
