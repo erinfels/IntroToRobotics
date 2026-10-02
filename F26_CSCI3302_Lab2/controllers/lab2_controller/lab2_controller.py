@@ -16,6 +16,20 @@ pose_x = 0
 pose_y = 0
 pose_theta = 0
 
+# Approximate fixed stripe-exit pose: Webots X, Z, heading from +X toward +Z.
+INITIAL_X = -0.28
+INITIAL_Y = 0.2045
+INITIAL_THETA = math.pi / 2
+
+
+def global_pose():
+    c = math.cos(INITIAL_THETA)
+    s = math.sin(INITIAL_THETA)
+    return (INITIAL_X + c * pose_x + s * pose_y,
+            INITIAL_Y + s * pose_x - c * pose_y,
+            INITIAL_THETA - pose_theta)
+
+
 # Index into ground_sensors and ground_sensor_readings for each of the 3 onboard sensors.
 LEFT_IDX = 0
 CENTER_IDX = 1
@@ -217,7 +231,7 @@ while robot.step(SIM_TIMESTEP) != -1:
                 )
             if start_line_confirmed:
                 if lap_started:
-                    print("Pose before reset: [%5f, %5f, %5f]" % (pose_x, pose_y, pose_theta))
+                    print("Pose before reset: [%5f, %5f, %5f]" % global_pose())
                    # while (True):
                         #time.sleep(1)
 
@@ -236,7 +250,7 @@ while robot.step(SIM_TIMESTEP) != -1:
             start_line_time = None
             start_line_confirmed = False
 
-    print("Current pose: [%5f, %5f, %5f]" % (pose_x, pose_y, pose_theta))
+    print("Current pose: [%5f, %5f, %5f]" % global_pose())
     #if state == "line_follower":
         #print("Sensors:", gsr, "On line:", (left_on_line, center_on_line, right_on_line), "Motors:", (vL, vR))
     leftMotor.setVelocity(vL)
