@@ -112,7 +112,8 @@ while robot.step(SIM_TIMESTEP) != -1:
     
     
     PosErr = np.sqrt((pose_x-waypoints[index][0])**2 + (pose_y-waypoints[index][1])**2)
-    BerErr = pose_theta
+    BerErr = np.atan2(pose_x-waypoints[index][0], pose_y-waypoints[index][1])
+    HedErr = pose_theta - np.atan2(waypoints[index][0]-waypoints[index+1][0], waypoints[index][1]-waypoints[index+1][1])#difference between its current aim and the one it should be at the next one)
     
     # TODO: controller
     
