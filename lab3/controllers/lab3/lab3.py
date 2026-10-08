@@ -13,9 +13,12 @@ pose_theta = 0
 robot = Supervisor()
 
 # ePuck Constants
-EPUCK_AXLE_DIAMETER = 0.053 # ePuck's wheels are 53mm apart.
+AXLE_LENGTH = EPUCK_AXLE_DIAMETER = 0.053 # ePuck's wheels are 53mm apart.
 EPUCK_MAX_WHEEL_SPEED = 0.1257 # ePuck wheel speed in m/s
 MAX_SPEED = 6.28
+WHEEL_RADIUS = EPUCK_MAX_WHEEL_SPEED / MAX_SPEED
+DIST_TOL = 0.02
+ANGLE_TOL = 0.05
 
 # get the time step of the current world.
 SIM_TIMESTEP = int(robot.getBasicTimeStep())
@@ -66,11 +69,23 @@ PosErr = 0
 #Determine (Bearing Error) Calculate the angle 𝛼 between the orientation of the robot and the direction of the goal position. (positive to the left)
 BerErr = 0
 
-
 #Determine (Heading Error) Calculate the angle 𝜂 between the orientation of the robot and the goal orientation.
 HedErr = 0
 
 #theres a decent chance these shouldn't be functions lol
+
+def wrap(a):
+    return math.atan2(math.sin(a), math.cos(a))
+    
+def wheel_speeds(x_dot, theta_dot):
+    phi_l = (x_dot - theta_dot * AXLE_LENGTH / 2) / WHEEL_RADIUS
+    phi_r = (x_dot + theta_dot * AXLE_LENGTH / 2) / WHEEL_RADIUS
+    # Scale both wheels by the same factor so the robot keeps the same arc
+    biggest = max(abs(phi_l), abs(phi_r))
+    if biggest > MAX_SPEED:
+        phi_l *= MAX_SPEED / biggest
+        phi_r *= MAX_SPEED / biggest
+    return phi_l, phi_r
 
 def turn_drive_turn_control(): 
     #Using <left/right>motor.setVelocity(), create a controller that rotates in place until the robot is facing the
@@ -110,10 +125,12 @@ while robot.step(SIM_TIMESTEP) != -1:
     pose_y = gps.getValues()[1]
     pose_theta = np.arctan2(compass.getValues()[0], compass.getValues()[1])
     
-    
     PosErr = np.sqrt((pose_x-waypoints[index][0])**2 + (pose_y-waypoints[index][1])**2)
-    BerErr = np.atan2(pose_x-waypoints[index][0], pose_y-waypoints[index][1])
-    HedErr = pose_theta - np.atan2(waypoints[index][0]-waypoints[index+1][0], waypoints[index][1]-waypoints[index+1][1])#difference between its current aim and the one it should be at the next one)
+    
+    gx, gy = waypoints[index]
+    nx, ny = waypoints[(index + 1) % len(waypoints)]
+    BerErr = math.atan2(gy - pose_y, gx - pose_x) - pose_theta
+    HedErr = math.atan2(ny - gy, nx - gx) - pose_theta
     
     # TODO: controller
     
