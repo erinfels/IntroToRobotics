@@ -17,7 +17,7 @@ AXLE_LENGTH = EPUCK_AXLE_DIAMETER = 0.053 # ePuck's wheels are 53mm apart.
 EPUCK_MAX_WHEEL_SPEED = 0.1257 # ePuck wheel speed in m/s
 MAX_SPEED = 6.28
 WHEEL_RADIUS = EPUCK_MAX_WHEEL_SPEED / MAX_SPEED
-DIST_TOL = 0.02
+DIST_TOL = 0.05
 ANGLE_TOL = 0.05
 
 # get the time step of the current world.
@@ -60,8 +60,8 @@ index = 1
 # Get ping pong ball marker that marks the next waypoint the robot is reaching
 marker = robot.getFromDef("marker").getField("translation")
 
-#Phi_l = X_R/r - dtheta/2r
-#Phi_r = X_R/r + dtheta/2r
+#Phi_l = X_R/r - d*theta/2r
+#Phi_r = X_R/r + d*theta/2r
 
 #Determine (Position Error) Calculate the Euclidean distance 𝜌 between your current location and the goal position.
 PosErr = 0
@@ -72,41 +72,58 @@ BerErr = 0
 #Determine (Heading Error) Calculate the angle 𝜂 between the orientation of the robot and the goal orientation.
 HedErr = 0
 
-#theres a decent chance these shouldn't be functions lol
-
 def wrap(a):
     return math.atan2(math.sin(a), math.cos(a))
     
+    
+MAX_TURN_WHEEL = 3.0
+
 def wheel_speeds(x_dot, theta_dot):
-    phi_l = (x_dot - theta_dot * AXLE_LENGTH / 2) / WHEEL_RADIUS
-    phi_r = (x_dot + theta_dot * AXLE_LENGTH / 2) / WHEEL_RADIUS
-    # Scale both wheels by the same factor so the robot keeps the same arc
-    biggest = max(abs(phi_l), abs(phi_r))
-    if biggest > MAX_SPEED:
-        phi_l *= MAX_SPEED / biggest
-        phi_r *= MAX_SPEED / biggest
+    turn = theta_dot * AXLE_LENGTH / 2 / WHEEL_RADIUS
+    turn = max(-MAX_TURN_WHEEL, min(MAX_TURN_WHEEL, turn))
+    
+    headroom = MAX_SPEED - abs(turn)
+    fwd = max(-headroom, min(headroom, x_dot / WHEEL_RADIUS))
+    
+    phi_l = max(-MAX_SPEED, min(MAX_SPEED, fwd - turn))
+    phi_r = max(-MAX_SPEED, min(MAX_SPEED, fwd + turn))
     return phi_l, phi_r
 
-def turn_drive_turn_control(): 
-    #Using <left/right>motor.setVelocity(), create a controller that rotates in place until the robot is facing the
-    #goal position (reduce bearing error), drives forward to the goal position (reduce position error), then
-    #rotates in place to orient to the proper heading (reduce heading error).
-    return none
 
-def proportional_controller():
-    #Calculate the necessary change in robot position 𝑋̇𝑅 that is
-    #proportional to 𝜌. Calculate the necessary change in robot rotation 𝜃̇𝑅 that is proportional to 𝛼 and 𝜂.
-    #Set values for left and right wheel motors accordingly.
-    
-    #Create a proportional feedback controller that uses the inverse kinematics equations with your error
-    #signals to compute the wheel rotations needed to make the position and rotation changes for driving to
-    #a given goal.
-    return none
+state = "turn_to_goal"
+
+def turn_drive_turn_control(rho, alpha, eta):
+    global state
+    x_dot, theta_dot, done = 0.0, 0.0, False
+    if state == "turn_to_goal":
+        theta_dot = 2.0 * alpha
+        if abs(alpha) < ANGLE_TOL:
+            state = "drive"
+    elif state == "drive":
+        x_dot = EPUCK_MAX_WHEEL_SPEED
+        theta_dot = 2.0 * alpha
+        if rho < DIST_TOL:
+            state = "turn_to_heading"
+    elif state == "turn_to_heading":
+        theta_dot = 2.0 * eta
+        if abs(eta) < ANGLE_TOL:
+            state = "turn_to_goal"
+            done = True
+    return x_dot, theta_dot, done
+
+P1, P2, P3 = 1.0, 4.0, 0.2  
+TURN_GAIN = 2.0              
+
+def proportional_controller(rho, alpha, eta):
+    if rho > DIST_TOL:
+        x_dot = P1 * rho * max(0.0, math.cos(alpha))
+        theta_dot = P2 * alpha + P3 * eta
+        return x_dot, theta_dot, False
+    return 0.0, TURN_GAIN * eta, abs(eta) < ANGLE_TOL
     
 
 # Main Control Loop:
 while robot.step(SIM_TIMESTEP) != -1:
-    # Safety check: make sure waypoints are defined
     if len(waypoints) == 0:
         print("ERROR: No waypoints defined! Please add waypoints to the waypoints list.")
         leftMotor.setVelocity(0.0)
@@ -128,11 +145,16 @@ while robot.step(SIM_TIMESTEP) != -1:
     PosErr = np.sqrt((pose_x-waypoints[index][0])**2 + (pose_y-waypoints[index][1])**2)
     
     gx, gy = waypoints[index]
-    nx, ny = waypoints[(index + 1) % len(waypoints)]
-    BerErr = math.atan2(gy - pose_y, gx - pose_x) - pose_theta
-    HedErr = math.atan2(ny - gy, nx - gx) - pose_theta
+    prev_x, prev_y = waypoints[index - 1]   # index 0 wraps to the last waypoint automatically
+    BerErr = wrap(math.atan2(gy - pose_y, gx - pose_x) - pose_theta)
+    HedErr = wrap(math.atan2(gy - prev_y, gx - prev_x) - pose_theta)
+ 
+    x_dot, theta_dot, done = proportional_controller(PosErr, BerErr, HedErr)
+    # x_dot, theta_dot, done = turn_drive_turn_control(PosErr, BerErr, HedErr)
+    vL, vR = wheel_speeds(x_dot, theta_dot)
     
-    # TODO: controller
+    if done:
+        index = (index + 1) % len(waypoints)
     
     print(f"{PosErr} {index}")
     print(f"{BerErr} {HedErr}")
