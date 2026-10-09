@@ -1,5 +1,12 @@
 """csci3302_lab3 controller."""
 
+#Set variable to 1 in order to test proportial controller
+#Set variable to 2 in order to test turn_drive_turn
+
+whichcontroller = 1
+
+
+
 # You may need to import some classes of the controller module.
 import math
 from controller import Robot, Motor, DistanceSensor, Supervisor
@@ -149,8 +156,10 @@ while robot.step(SIM_TIMESTEP) != -1:
     BerErr = wrap(math.atan2(gy - pose_y, gx - pose_x) - pose_theta)
     HedErr = wrap(math.atan2(gy - prev_y, gx - prev_x) - pose_theta)
  
-    x_dot, theta_dot, done = proportional_controller(PosErr, BerErr, HedErr)
-    # x_dot, theta_dot, done = turn_drive_turn_control(PosErr, BerErr, HedErr)
+    if (whichcontroller == 1):
+        x_dot, theta_dot, done = proportional_controller(PosErr, BerErr, HedErr)  
+    else:
+        x_dot, theta_dot, done = turn_drive_turn_control(PosErr, BerErr, HedErr)
     vL, vR = wheel_speeds(x_dot, theta_dot)
     
     if done:
