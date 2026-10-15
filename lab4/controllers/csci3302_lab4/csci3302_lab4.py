@@ -1,4 +1,4 @@
-# """csci3302_lab4 controller."""
+# csci3302_lab4 controller.
 # Copyright (2025) University of Colorado Boulder
 # CSCI 3302: Introduction to Robotics
 
@@ -67,10 +67,35 @@ lidar.enablePointCloud()
 
 #### End of Part 1 #####
 
+lidar_sensor_readings = []
+ 
+# evenly spaced from -45 deg to +45 deg, index 10 (the middle ray) is 0 radians.
+lidar_ray_angles = np.linspace(-LIDAR_ANGLE_RANGE / 2,
+                               LIDAR_ANGLE_RANGE / 2,
+                               num=NUM_LIDAR_RAYS)
+
+
 ########################
 # Part 2
 ########################
 # TODO Part 2:Initialize the data structure for your map here
+
+DISPLAY_SIZE = 300   # display is 300 x 300 pixels covering a 1 m x 1 m floor
+MAP_SIZE_M = 1.0     # meters
+ 
+visited_pixels = set()    # (px, py) pixels the robot has driven over
+occupied_pixels = set()   # (px, py) pixels hit by the lidar (used in Parts 3-4)
+ 
+ 
+def world_to_pixel(x, y):
+    """Convert map coordinates (meters) to display pixel indices, clamped to the display."""
+    px = int(x / MAP_SIZE_M * DISPLAY_SIZE)
+    py = int(y / MAP_SIZE_M * DISPLAY_SIZE)
+    px = max(0, min(DISPLAY_SIZE - 1, px))
+    py = max(0, min(DISPLAY_SIZE - 1, py))
+    return px, py
+
+
 
 # Main Control Loop:
 cnt = 0
@@ -105,6 +130,32 @@ while robot.step(SIM_TIMESTEP) != -1:
     #         and its x-axis increases to the right, and its y-axis increases downward.
     #       - In the robot frame, forward motion aligns with the +x-axis, and left corresponds to the +y-axis.
     #       - Please also refer to the instructions document to see how the robot's pose is defined in the map coordinate system.
+
+    # matrix transform and shit from the lectures
+    c, s = math.cos(pose_theta), math.sin(pose_theta)
+    T_map_robot = np.array([[ c, -s, pose_x],
+                            [-s, -c, pose_y],
+                            [ 0,  0,      1]])
+ 
+    hits_this_step = []  # map coordinates (mx, my) of obstacles seen this step
+    for i, rho in enumerate(lidar_sensor_readings):
+        if rho >= LIDAR_SENSOR_MAX_RANGE or math.isinf(rho) or math.isnan(rho):
+            continue  # no obstacle within range on this ray
+ 
+        alpha = lidar_ray_angles[i]
+        # alpha is measured from the robot's forward (+x) axis toward its right,
+        # and the robot's +y axis points left, hence the minus sign on ry.
+        rx = rho * math.cos(alpha)
+        ry = -rho * math.sin(alpha)
+ 
+        mx, my, _ = T_map_robot @ np.array([rx, ry, 1.0])
+        hits_this_step.append((mx, my))
+        occupied_pixels.add(world_to_pixel(mx, my))
+ 
+        # Debug check from the instruction pdf thing, forward ray (index 10) should have ry ~ 0 and rx equal to the distance straight ahead.
+        # if i == 10:
+        #     print("rx=%.3f ry=%.3f mx=%.3f my=%.3f" % (rx, ry, mx, my))
+
 
     # TODO Part 4: Draw the obstacle, the robot's path, and free spaces on the map
     # Draw the occupied pixel in blue.
@@ -146,6 +197,9 @@ while robot.step(SIM_TIMESTEP) != -1:
             vL = -0.05*MAX_SPEED
             vR = 0.2*MAX_SPEED
             cnt = 0
+        else:
+            vL = 0.2*MAX_SPEED
+            vR = 0.2*MAX_SPEED
 
     else:
         # Stationary State
