@@ -114,12 +114,14 @@ def forward_kinematics(q):
     Returns:
         position : numpy array [x, y, z] in robot base frame
     """
-    position = np.array()
-    
-    
-    return 
-    
-    raise NotImplementedError("TODO: Implement forward_kinematics()")
+    T = np.eye(4)
+    T_offset = np.eye(4)
+    T_offset[2, 3] = GRIPPER_OFFSET
+    for i in range(6):
+        T = T@_dh(UR5E_DH_A[i], UR5E_DH_D[i], UR5E_DH_ALPHA[i], q[i])  
+    T = T@T_offset
+    position = T[:3, -1]
+    return position
 
 
 # ============================================================
