@@ -138,8 +138,15 @@ def compute_jacobian(q, delta=1e-5):
     Returns:
         J : numpy array (3, 6)
     """
-    # TODO: Implement (~8-10 lines)
-    raise NotImplementedError("TODO: Implement compute_jacobian()")
+    q = np.asarray(q, dtype=float)
+    J = np.zeros((3, 6))
+    for i in range(6):
+        q_plus = q.copy()
+        q_minus = q.copy()
+        q_plus[i] += delta
+        q_minus[i] -= delta
+        J[:, i] = (forward_kinematics(q_plus) - forward_kinematics(q_minus)) / (2 * delta)
+    return J
 
 
 # ============================================================
@@ -157,14 +164,22 @@ def get_waypoints(block_world, bin_world):
         dict with keys: 'above_block', 'at_block', 'above_bin'
         Each value is a list [x, y, z] in world frame.
     """
-    raise NotImplementedError("TODO: Implement get_waypoints()")
+    above_block = block_world.copy()
+    at_block = block_world.copy()
+    above_bin = bin_world.copy()
+    
+    above_block[2] = block_world[2] + 0.15
+    at_block[2] = block_world[2] + 0.02
+    above_bin[2] = bin_world[2] + 0.1
+    
+    return {'above_block':above_block,'at_block':at_block,'above_bin':above_bin}
 
 
 # ============================================================
 # TASK 4: Gradient Descent IK (20 pts)
 # ============================================================
 def gradient_descent_ik(target_world, q_init, learning_rate,
-                         max_iterations, tolerance):
+                         max_iters, tolerance):
     """
     Find joint angles that place the gripper at target_world.
 
@@ -172,7 +187,7 @@ def gradient_descent_ik(target_world, q_init, learning_rate,
         target_world   : [x, y, z] desired position in world frame
         q_init         : starting joint angles (numpy array of 6)
         learning_rate  : step size (default 0.5)
-        max_iterations : max steps (default 1000)
+        max_iters      : maximum number of joint updates
         tolerance      : converge when error < this (meters)
 
     Returns:
@@ -180,7 +195,25 @@ def gradient_descent_ik(target_world, q_init, learning_rate,
         converged  : bool
         errors     : list of position error at each iteration
     """
-    raise NotImplementedError("TODO: Implement gradient_descent_ik()")
+    target_base = world_to_base(target_world)
+    q = np.array(q_init, dtype=float, copy=True)
+    errors = []
+
+    for iters in range(max_iters + 1):
+        error = target_base - forward_kinematics(q)
+        error_norm = np.linalg.norm(error)
+        errors.append(float(error_norm))
+
+        if error_norm < tolerance:
+            return q, True, errors
+
+        if iters == max_iters:
+            break
+
+        J = compute_jacobian(q)
+        q += learning_rate * (J.T @ error)
+
+    return q, False, errors
 
 
 # ============================================================
