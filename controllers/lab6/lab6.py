@@ -178,8 +178,7 @@ def get_waypoints(block_world, bin_world):
 # ============================================================
 # TASK 4: Gradient Descent IK (20 pts)
 # ============================================================
-def gradient_descent_ik(target_world, q_init, learning_rate,
-                         max_iters, tolerance):
+def gradient_descent_ik(target_world, q_init, learning_rate, max_iters, tolerance):
     """
     Find joint angles that place the gripper at target_world.
 
@@ -220,20 +219,39 @@ def gradient_descent_ik(target_world, q_init, learning_rate,
 # TASK 5: Pick and Place Sequence (10 pts)
 # ============================================================
 def pick_and_place(arm, block_world, bin_world):
-    """
-    Pick up the block and place it in the bin.
+    wp = get_waypoints(block_world, bin_world)
 
-    """
-    # TODO: Implement 
-    raise NotImplementedError("TODO: Implement pick_and_place()")
+    def go(target, q_start):
+        q, ok, errs = gradient_descent_ik(target, q_start, 0.5, 2000, 1e-3)
+        print(f"IK -> {target}: converged={ok}, final err={errs[-1]:.4f} m")
+        arm.move_to(q)
+        return q
+
+    arm.move_to(HOME)
+    arm.open_gripper(); arm.wait(1.0)
+
+    q = go(wp['above_block'], np.array(HOME))
+    q = go(wp['at_block'], q)
+    arm.close_gripper(); arm.wait(1.5)
+    q = go(wp['above_block'], q)
+    q = go(wp['above_bin'], q)
+    arm.open_gripper(); arm.wait(1.5)
+    arm.move_to(HOME)
 
 
 # ============================================================
 # MAIN — DO NOT MODIFY
 # ============================================================
 def main():
-    raise NotImplementedError("TODO: Implement main() to run the pick-and-place demo.")
+    global ROBOT_POS
+    robot = Supervisor()
+    arm = UR5eInterface(robot)          
+    
+    ROBOT_POS = np.array(robot.getSelf().getField("translation").getSFVec3f())
+    block_world = list(robot.getFromDef("BLOCK").getField("translation").getSFVec3f())
+    bin_world   = list(robot.getFromDef("BIN").getField("translation").getSFVec3f())
 
+    pick_and_place(arm, block_world, bin_world)
 
 if __name__ == "__main__":
     main()
